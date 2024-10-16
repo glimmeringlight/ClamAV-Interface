@@ -101,11 +101,28 @@ class ClamInterface(QWidget):
     # action functions below
     def begin_scan(self):
         scan_window = ScanWindow(parent=self)
-        try:
-            if scan_window.exec_() == QDialog.Accepted:
-                print(f"Scanning: { self.config['scan_config']['folder_path'] }")
-        except Exception as e:
-            print(e)
+
+        if scan_window.exec_() == QDialog.Accepted:
+            self.scan_process = QProcess()
+            self.scan_process.readyReadStandardOutput.connect(lambda: self.display_info(
+                bytes(self.scan_process.readAllStandardOutput()).decode('utf-8')
+            ))
+            self.scan_process.started.connect(lambda: self.display_info(
+                "[ClamAv Interface] Scanning {} (may take a while), info will be shown below...\n".format(
+                    self.config['scan_config']['folder_path']
+                )
+            ))
+            self.scan_process.finished.connect(lambda: self.display_info(
+                "[ClamAv Interface] Scanning finished!\n"
+               ))
+            args = []
+            args.append("-r")
+            args.append(self.config['scan_config']['folder_path'])
+
+            self.scan_process.start(
+                "{}/clamscan".format(self.config['global_settings']['clamav_path']), 
+                args
+            )
 
 
     def update_virus_database(self):
