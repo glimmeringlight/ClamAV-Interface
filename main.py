@@ -1,4 +1,5 @@
 import json
+import os.path
 import sys
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -62,16 +63,25 @@ class ClamInterface(QWidget):
         self.setting_btn.setFixedSize(QSize(64, 64))
         self.function_bar.addWidget(self.setting_btn)
 
+        # 检查可用性
+        self.check_btn = QPushButton()
+        self.check_btn.setIcon(QIcon('./icons/check.svg'))
+        self.check_btn.setIconSize(QSize(36, 36))
+        self.check_btn.setToolTip('Check availability')
+        self.check_btn.setFixedSize(QSize(64, 64))
+        self.function_bar.addWidget(self.check_btn)
+
         self.function_bar.addStretch()  # end function bar
 
         self.main_layout.addLayout(self.function_bar)
 
         # 内容反馈区域
         self.content_display = QTextBrowser(self)
+        self.content_display.setMinimumSize(QSize(800,600))
         self.main_layout.addWidget(self.content_display)
 
 
-        self.main_layout.addStretch()   # end main_layout
+        # self.main_layout.addStretch()   # end main_layout
         self.setLayout(self.main_layout)
 
         ## end setup UI
@@ -83,8 +93,9 @@ class ClamInterface(QWidget):
         # global config: should be like:
         self.config = {
             'scan_config': {
-                'folder_path': ''
-            },
+                'folder_path': '',
+                'generate_log_file': True
+            }
         }
         with open('./config.json', 'r') as f:
             self.config["global_settings"] = json.load(f)
@@ -95,6 +106,7 @@ class ClamInterface(QWidget):
         self.clear_btn.clicked.connect(self.clear_output)
         self.setting_btn.clicked.connect(self.edit_settings)
         self.scan_btn.clicked.connect(self.begin_scan)
+        self.check_btn.clicked.connect(self.check_availability)
 
 
 
@@ -102,27 +114,36 @@ class ClamInterface(QWidget):
     def begin_scan(self):
         scan_window = ScanWindow(parent=self)
 
-        if scan_window.exec_() == QDialog.Accepted:
-            self.scan_process = QProcess()
-            self.scan_process.readyReadStandardOutput.connect(lambda: self.display_info(
-                bytes(self.scan_process.readAllStandardOutput()).decode('utf-8')
-            ))
-            self.scan_process.started.connect(lambda: self.display_info(
-                "[ClamAv Interface] Scanning {} (may take a while), info will be shown below...\n".format(
-                    self.config['scan_config']['folder_path']
-                )
-            ))
-            self.scan_process.finished.connect(lambda: self.display_info(
-                "[ClamAv Interface] Scanning finished!\n"
-               ))
-            args = []
-            args.append("-r")
-            args.append(self.config['scan_config']['folder_path'])
+        if scan_window.exec_() != QDialog.Accepted:
+            return
 
-            self.scan_process.start(
-                "{}/clamscan".format(self.config['global_settings']['clamav_path']), 
-                args
+        self.scan_process = QProcess()
+        self.scan_process.readyReadStandardOutput.connect(lambda: self.display_info(
+            bytes(self.scan_process.readAllStandardOutput()).decode('utf-8')
+        ))
+        self.scan_process.started.connect(lambda: self.display_info(
+            "[ClamAv Interface] Scanning {} (may take a while), info will be shown below...\n".format(
+                self.config['scan_config']['folder_path']
             )
+        ))
+        self.scan_process.finished.connect(lambda: self.display_info(
+            "[ClamAv Interface] Scanning finished!\n"
+            ))
+        # construct commands
+        args = []
+        args.append("-r")
+        args.append(self.config['scan_config']['folder_path'])
+        if(self.config['scan_config']['generate_log_file']):
+            args.append("-l")
+            args.append("{}/{}.log".format(
+                self.config['scan_config']['folder_path'],
+                time.time()
+            ))
+
+        self.scan_process.start(
+            "{}/clamscan".format(self.config['global_settings']['clamav_path']),
+            args
+        )
 
 
     def update_virus_database(self):
@@ -142,6 +163,18 @@ class ClamInterface(QWidget):
     def edit_settings(self):
         settingsWindow = SettingsWindow(self)
         settingsWindow.exec_()
+
+
+    def check_availability(self):
+        available = False
+        if os.path.exists(self.config['global_settings']['clamav_path']):
+            if os.path.isfile(os.path.join(self.config['global_settings']['clamav_path'], "clamav")):
+                available = True
+        if(available):
+            msg = "[ClamAv Interface] ClamAv is available!\n"
+        else:
+            msg = "[ClamAv Interface] ClamAv is not available!\n"
+        self.display_info(msg)
 
     # common util functions
     def display_info(self, data):
