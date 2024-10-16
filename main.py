@@ -1,6 +1,7 @@
 import json
 import os.path
 import sys
+import time
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -121,25 +122,30 @@ class ClamInterface(QWidget):
         self.scan_process.readyReadStandardOutput.connect(lambda: self.display_info(
             bytes(self.scan_process.readAllStandardOutput()).decode('utf-8')
         ))
-        self.scan_process.started.connect(lambda: self.display_info(
-            "[ClamAv Interface] Scanning {} (may take a while), info will be shown below...\n".format(
-                self.config['scan_config']['folder_path']
-            )
-        ))
-        self.scan_process.finished.connect(lambda: self.display_info(
-            "[ClamAv Interface] Scanning finished!\n"
-            ))
+        
         # construct commands
         args = []
+
         args.append("-r")
         args.append(self.config['scan_config']['folder_path'])
+        start_msg = "[ClamAV Interface] Ready to scan folder {} , this may take a while...\n".format(
+            self.config['scan_config']['folder_path']
+        )
+        finished_msg = "[ClamAV Interface] Finished scanning!\n"
+
         if(self.config['scan_config']['generate_log_file']):
-            args.append("-l")
-            args.append("{}/{}.log".format(
+            log_file = "{}/{}.log".format(
                 self.config['scan_config']['folder_path'],
                 time.time()
-            ))
+            )
+            args.append("-l")
+            args.append(log_file)
+            start_msg += "[ClamAV Interface] Your log file will be placed at {}.\n".format(log_file)
+            finished_msg += "[ClamAV Interface] Your log file is placed at {}.\n".format(log_file)
 
+        # bind action and start 
+        self.scan_process.started.connect(lambda: self.display_info(start_msg))
+        self.scan_process.finished.connect(lambda: self.display_info(finished_msg, partition=True))
         self.scan_process.start(
             "{}/clamscan".format(self.config['global_settings']['clamav_path']),
             args
@@ -155,7 +161,7 @@ class ClamInterface(QWidget):
             "[ClamAv Interface] Updating your database, info will be shown below...\n"
         ))
         self.update_process.finished.connect(lambda: self.display_info(
-            "[ClamAv Interface] Updating database finished!\n"
+            "[ClamAv Interface] Updating database finished!\n", partition=True
         ))
         self.update_process.start("{}/freshclam".format(self.config['global_settings']['clamav_path']))
 
@@ -168,17 +174,19 @@ class ClamInterface(QWidget):
     def check_availability(self):
         available = False
         if os.path.exists(self.config['global_settings']['clamav_path']):
-            if os.path.isfile(os.path.join(self.config['global_settings']['clamav_path'], "clamav")):
+            if os.path.isfile(os.path.join(self.config['global_settings']['clamav_path'], "clamscan")):
                 available = True
         if(available):
             msg = "[ClamAv Interface] ClamAv is available!\n"
         else:
             msg = "[ClamAv Interface] ClamAv is not available!\n"
-        self.display_info(msg)
+        self.display_info(msg, partition=True)
 
     # common util functions
-    def display_info(self, data):
+    def display_info(self, data, partition=False):
         self.info_text += data
+        if(partition):
+            self.info_text += "\n\n"
         self.content_display.setText(self.info_text)
         self.content_display.moveCursor(QTextCursor.End)
 
