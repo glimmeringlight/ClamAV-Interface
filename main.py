@@ -110,8 +110,13 @@ class ClamInterface(QWidget):
         self.update_process.readyReadStandardOutput.connect(lambda: self.display_info(
             bytes(self.update_process.readAllStandardOutput()).decode('utf-8')
         ))
-        args = ['D:/Data/Program/QtProj/ClamInterface/test.py']
-        self.update_process.start("python", args)
+        self.update_process.started.connect(lambda: self.display_info(
+            "[ClamAv Interface] Updating your database, info will be shown below...\n"
+        ))
+        self.update_process.finished.connect(lambda: self.display_info(
+            "[ClamAv Interface] Updating database finished!\n"
+        ))
+        self.update_process.start("freshclam")
 
 
     def edit_settings(self):
