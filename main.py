@@ -1,3 +1,4 @@
+import json
 import sys
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -83,8 +84,10 @@ class ClamInterface(QWidget):
         self.config = {
             'scan_config': {
                 'folder_path': ''
-            }
+            },
         }
+        with open('./config.json', 'r') as f:
+            self.config["global_settings"] = json.load(f)
 
 
     def bind_action(self):
@@ -116,11 +119,11 @@ class ClamInterface(QWidget):
         self.update_process.finished.connect(lambda: self.display_info(
             "[ClamAv Interface] Updating database finished!\n"
         ))
-        self.update_process.start("freshclam")
+        self.update_process.start("{}/freshclam".format(self.config['global_settings']['clamav_path']))
 
 
     def edit_settings(self):
-        settingsWindow = SettingsWindow()
+        settingsWindow = SettingsWindow(self)
         settingsWindow.exec_()
 
     # common util functions
