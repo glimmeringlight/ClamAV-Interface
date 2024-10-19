@@ -95,7 +95,8 @@ class ClamInterface(QWidget):
         self.config = {
             'scan_config': {
                 'folder_path': '',
-                'generate_log_file': True
+                'generate_log_file': True,
+                'customized_params:': '',
             }
         }
         with open('./config.json', 'r') as f:
@@ -122,7 +123,7 @@ class ClamInterface(QWidget):
         self.scan_process.readyReadStandardOutput.connect(lambda: self.display_info(
             bytes(self.scan_process.readAllStandardOutput()).decode('utf-8')
         ))
-        
+
         # construct commands
         args = []
 
@@ -142,8 +143,14 @@ class ClamInterface(QWidget):
             args.append(log_file)
             start_msg += "[ClamAV Interface] Your log file will be placed at {}.\n".format(log_file)
             finished_msg += "[ClamAV Interface] Your log file is placed at {}.\n".format(log_file)
+            ))
+        # customized params
+        if(self.config['scan_config']['customized_params']) != '':
+            param_list = self.config['scan_config']['customized_params'].split()
+            for param in param_list:
+                args.append(param)
 
-        # bind action and start 
+        # bind action and start
         self.scan_process.started.connect(lambda: self.display_info(start_msg))
         self.scan_process.finished.connect(lambda: self.display_info(finished_msg, partition=True))
         self.scan_process.start(

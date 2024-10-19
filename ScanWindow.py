@@ -56,6 +56,35 @@ class ScanWindow(QDialog):
         self.save_log_file_checkbox.setChecked(True)
         main_layout.addWidget(self.save_log_file_checkbox)
 
+        ## customized settings
+        customized_settings_label = QLabel()
+        customized_settings_label.setText("Customized Settings")
+        customized_settings_label.setFont(QFont("Arial", 12))
+        customized_settings_label.setMaximumSize(QSize(250, 60))
+        main_layout.addWidget(customized_settings_label)
+
+        hline = QFrame()
+        hline.setFrameShape(QFrame.HLine)
+        hline.setFrameShadow(QFrame.Sunken)
+        hline.setFixedHeight(10)
+        main_layout.addWidget(hline)
+
+        ## customized params
+        more_params_layout = QHBoxLayout()
+
+        more_params_label = QLabel("More Parameters: ")
+        more_params_label.setFont(QFont("Arial", 10))
+        more_params_label.setMaximumSize(QSize(180, 60))
+        more_params_layout.addWidget(more_params_label)
+
+        self.more_params_line_edit = QLineEdit()
+        self.more_params_line_edit.setFont(QFont("Arial", 10))
+        self.more_params_line_edit.setMinimumSize(QSize(400, 40))
+        more_params_layout.addWidget(self.more_params_line_edit)
+
+
+        main_layout.addLayout(more_params_layout)
+
         main_layout.addStretch()
 
         ## Start Btn
@@ -78,6 +107,7 @@ class ScanWindow(QDialog):
             return
 
         self.parent.config['scan_config']['generate_log_file'] = True if self.save_log_file_checkbox.isChecked() else False
+        self.parent.config['scan_config']['customized_params'] = self.more_params_line_edit.text().strip()
 
         self.accept()
         # No folder is chosen
