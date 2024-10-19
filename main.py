@@ -143,7 +143,7 @@ class ClamInterface(QWidget):
             args.append(log_file)
             start_msg += "[ClamAV Interface] Your log file will be placed at {}.\n".format(log_file)
             finished_msg += "[ClamAV Interface] Your log file is placed at {}.\n".format(log_file)
-            ))
+
         # customized params
         if(self.config['scan_config']['customized_params']) != '':
             param_list = self.config['scan_config']['customized_params'].split()
